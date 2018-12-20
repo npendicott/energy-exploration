@@ -1,24 +1,76 @@
+from datetime import datetime
+import pandas
+from pandas import DataFrame, Series
+
 from influxdb import InfluxDBClient
 
+ENERGY_DB_HOST = 'localhost'
+ENERGY_DB_PORT = '8086'
+
+ENERGY_DB_USER = 'root'
+ENERGY_DB_PASSWORD = 'root'
+
+ENERGY_DB_ENERGY_DATABASE = 'energydb'
+
+ENERGY_DB_INDEX = 'time'
+
+
 class EnergyConnection:
-    ENERGY_DB_HOST = 'localhost'
-    ENERGY_DB_PORT = '8086'
-    
-    ENERGY_DB_USER = 'root'
-    ENERGY_DB_PASSWORD = 'root'
-    
-    ENERGY_DB_ENERGY_MEASURE = 'energydb'
-
-
+    """A class for connecting to InfluxDB, with a specific energy readings schema"""
     client = InfluxDBClient(
         ENERGY_DB_HOST, 
         ENERGY_DB_PORT, 
         ENERGY_DB_USER, 
         ENERGY_DB_PASSWORD, 
-        ENERGY_DB_ENERGY_MEASURE
-        )
-    
-    def print_energy_readings(self):
-        result = self.client.query('select * from energy_readings;')
+        ENERGY_DB_ENERGY_DATABASE
 
-        print("Result: {0}".format(result))
+    )
+
+    # 2016-01-11T17:00:00Z
+    @staticmethod
+    def format_index(frame, index, date_fmt_str="%Y-%m-%dT%H:%M:%SZ"):
+        frame[index] = frame[index].apply(lambda x: datetime.strptime(x, date_fmt_str))
+
+        frame.set_index(index)
+        frame.sort_index(inplace=True)
+
+        return frame
+
+    # TODO: form rooms to work we need to stop shoving stuff into QL
+    '''
+    This means we will probably want some query object. Hopefully there is json/yml like query in influxdb
+    
+    TEST: the values/columns unpack
+    '''
+    # series needs to be string
+    def get_readings(self, series):
+        """Get the colum headers and values from an InfluxDB series"""
+        query_fmt = "SELECT * FROM {0};".format(series)
+        result = self.client.query(query_fmt)
+        # print("Result: {0}".format(result))
+
+        values = result.raw['series'][0]['values']
+        columns = result.raw['series'][0]['columns']
+
+        return columns, values
+        # return result
+
+    # TODO: Should we introduce pandas here??
+    def sample_series(self, series, append_frame=None):
+        """Create a pandas dataframe from specific series. Append to a given frame, if supplied."""
+        # readings = self.get_readings('energy_readings')
+        # values = readings.raw['series'][0]['values']
+        # columns = readings.raw['series'][0]['columns']
+
+        columns, values = self.get_readings(series)
+        dataframe = DataFrame(values, columns=columns)
+        dataframe = self.format_index(dataframe, ENERGY_DB_INDEX)
+
+        # https://pandas.pydata.org/pandas-docs/stable/merging.html
+        if append_frame is not None:
+            # dataframe = pandas.concat([dataframe, input_frame], axis=1, join='inner', join_axes=[input_frame.index])
+            dataframe = pandas.merge(append_frame, dataframe, on=['time', 'time'])
+        # print(dataframe)
+
+        return dataframe
+
