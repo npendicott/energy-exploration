@@ -8,11 +8,15 @@ from statsmodels.tsa.seasonal import seasonal_decompose
 '''
 TEST
 
+base:
+base is df (nparray?)
+
 Index series:
 must be a datetime
 
 Model:
 model must be string
+
 
 '''
 
@@ -20,57 +24,119 @@ model must be string
 # TODO: Inherit from df, so df calls go to base?
 class TimeSeriesSample:
     """An object for holding time series data, for the purpose of data analysis and modeling."""
+
     # Base Dataframe
+    # TODO: How do we deal with 'split' stuff? 'base' will be full until the split, then will only be
+    #  the train set. 'base_valid' will be only be the validation set. Any transform over the full set will need to
+    #  operate over the full set, but will also need to preserve the original split.
+    #  possibility: with some decorator, merge the sets and save the split index, then re-split. Could just save the
+    #  percent, but that seems less precise?
     base = None
     base_valid = None
+    base_full = None
 
-    # Stuff to keep track of
-    index = None
+    index = None  # Should probably be a time index
+    categorical_features = None
     # TODO: Come up with better name/system
-    series = None
-    
-    # Decomposition
-    # TODO: Subclass Decomp w/ some sort of interface
-    trend = None
-    trend_valid = None
 
-    cycle = None
-    cycle_valid = None
+    # TODO: Is this the best way to store?
+    train_test_split_index = None
 
-    season = None
-    season_valid = None
-    
-    noise = None
-    noise_valid = None
+    docomposition = None  # TODO; Not sure how defined to make this schema?
 
     # Constructor
     # TODO: Move to validation instead of format
-    '''
-    Test:
-    base is df
-    index is ts
-    '''
-    def __init__(self, base, index, series=None):
+    def __init__(self, base, index, categorical_features=None, date_fmt_str="%Y-%m-%d %H:%M:%S"):
+        # TODO: DataFrame, or NumPy Array?
         self.base = base
-        #self.index = index
-        self.base.set_index(index, inplace=True)
-        if series:
-            self.series = series
 
-    # Validation stuff
-    # TODO: ValidateIndex
+        # TODO: Check that index is a datetime, or try to parse it
+        try:
+            index_series = self.base[index]
+        except KeyError:
+            print("Index not found!")
+            return
 
-    # Index
-    def _string_format_index(self, date_fmt_str="%Y-%m-%d %H:%M:%S"):
-        self.base[self.index] = self.base[self.index].apply(lambda x: datetime.strptime(x, date_fmt_str))
-        self.base.set_index(self.index)
-        self.base.sort_index(inplace=True)
+        # If the index is a string, parse w/ date_fmt_str TODO: Default?
+        try:
+            index_series = index_series.apply(lambda x: datetime.strptime(x, date_fmt_str))
+        except TypeError:
+            pass
 
-        return True
+        # TODO: Do we drop the "index" series?
+        self.base.set_index(index_series, inplace=True)
+
+        # # TODO: If one is null, do we try to make the compliment the other?
+        # if series_features is not None and categorical_features is None:
+        #     pass
+        # if categorical_features is not None and series_features is None:
+        #     pass
+        #
+        # if series_features is not None:
+        #     #self.series_features = series_features
+        #     pass
+        if categorical_features is not None:
+            self.categorical_features = categorical_features
+
+    # Train/Test/Validation Split
+    def train_test_split(self, valid_percent):
+        """Splits off last valid_percent of the data to a validation set. Percent will come from last index of the
+        array.
+        """
+        # Base
+        if self.base is not None:
+            self.base, self.base_valid = self._split_frame(self.base, valid_percent)
+
+    @staticmethod
+    def _split_frame(frame, percent):
+        # TODO: Maybe some input validation?
+        size = len(frame.index)
+        factor = (100 - percent) / 100
+        split_index = int(size * factor)
+        train, validate = frame[0:split_index], frame[split_index:]
+
+        return train, validate
+
+    # Decorator funcs?? For splitting and rejoining, if necessary.
+    def _rejoin(self):
+        self.train_test_split_index = len(self.base)
+        self.base = self.base + self.base_valid
+
+    def _resplit(self):
+        self.base, self.base_valid = self.base[:self.train_test_split_index], self.base[self.train_test_split_index:]
+
+    # def plot_series_features(self):
+    #
+    #     series_plots = []
+    #     for series in self.base:
+    #         if series not in self.categorical_features:
+    #             series_plots.append(self.base.plot(kind='line', x=self.base.index, y=series))
+    #
+    #     return series_plots
+    #     pass
+    #
+    # def plot_categorical_features(self):
+    #     series_plots = []
+    #
+    #     for series in self.base:
+    #         if series in self.categorical_features:
+    #             series_plots.append(self.base.plot(kind='line', x=self.base.index, y=series))
+    #
+    #     return series_plots
+
+    # # Index
+    # def _string_format_index(self, date_fmt_str="%Y-%m-%d %H:%M:%S"):
+    #
+    #     self.base[self.index] = self.base[self.index].apply(lambda x: datetime.strptime(x, date_fmt_str))
+    #     self.base.set_index(self.index)
+    #     self.base.sort_index(inplace=True)
+    #
+    #     return True
 
     # Diagnostics
+    # TODO: All
     def stationality(self, series):
-        """Print out the stationality of the series. Use multiple methods/tests."""
+        """Print out the stationality of the series. Use multiple methods/test."""
         # ADF
         result = adfuller(self.base[series].values)
 
@@ -79,6 +145,8 @@ class TimeSeriesSample:
         print('Critical Values:')
         for key, value in result[4].items():
             print('\t%s: %.3f' % (key, value))
+
+        return result
 
     def autocorrelation(self):
         """Check the degree of autocorrelation."""
@@ -121,41 +189,6 @@ class TimeSeriesSample:
         r_sqr = 1 - (ss_res / ss_tot)
 
         return r_sqr
-
-    # Train/Test/Validation Split
-    def split_ts(self, valid_percent):
-        """Splits off last valid_percent of the data to a validation set. Percent will come from last index of the
-        array.
-        """
-        # Base
-        if self.base is not None:
-           self.base, self.base_valid = self._split_dataframe(valid_percent, self.base)
-
-        # Trend
-        if self.trend is not None:
-           self.trend, self.trend_valid = self._split_dataframe(valid_percent, self.trend)
-
-        # Cycle
-        if self.cycle is not None:
-            self.cycle, self.cycle_valid = self._split_dataframe(valid_percent, self.cycle)
-
-        # Season
-        if self.season is not None:
-            self.season, self.season_valid = self._split_dataframe(valid_percent, self.season)
-
-        # Noise
-        if self.noise is not None:
-            self.noise, self.noise_valid = self._split_dataframe(valid_percent, self.noise)
-
-    @staticmethod
-    def _split_dataframe(percent, series):
-        # TODO: Maybe some input validation?
-        size = len(series.index)
-        factor = (100 - percent) / 100
-        split_index = (int)(size * factor)
-        train, validate = series[0:split_index], series[split_index:]
-        
-        return train, validate
 
     # Generate some Classifications For Weekday/Weekend
     def day_of_week_class(self):
@@ -228,4 +261,3 @@ class TimeSeriesSample:
         print(self.base_valid.describe())
         print(self.base_valid[self.index])
         print()
-        
