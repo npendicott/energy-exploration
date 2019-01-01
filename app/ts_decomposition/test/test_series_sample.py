@@ -23,11 +23,26 @@ class TestSeriesSample(unittest.TestCase):
 
     def test_default_index_datetime_parse(self):
         test_frame = pandas.read_csv('./data/test_data.csv')
-
         sample = TimeSeriesSample(test_frame, 'datetime')
+
         first_index = sample.base.index[0]
 
         self.assertIsInstance(first_index, datetime)
+
+    def test_train_test_split_result_size(self):
+        test_frame = pandas.read_csv('./data/test_data.csv')
+        sample = TimeSeriesSample(test_frame, 'datetime')
+
+        sample.train_test_split(0.2)
+
+        self.assertEqual(len(sample.base), 8)
+        # size = len(frame.index)
+        # factor = (100 - percent) / 100
+        # split_index = int(size * factor)
+        # train, validate = frame[0:split_index], frame[split_index:]
+        #
+        # return train, validate
+
 
 
 # if __name__ == '__main__':
