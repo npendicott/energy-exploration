@@ -32,7 +32,7 @@ if __name__ == "__main__":
     sample = TimeSeriesSample(sample_frame, index='time')
 
     # TODO: Figure out what needs to be moved to constructor
-    sample.train_test_split(20) # Make sure everything can be done AFTER split
+    sample.train_test_split(20)  # Make sure everything can be done AFTER split
 
     print(sample.base.index)
     sample.day_of_week_class()

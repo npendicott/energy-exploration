@@ -4,21 +4,7 @@ from datetime import datetime
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.seasonal import seasonal_decompose
 
-
-'''
-TEST
-
-base:
-base is df (nparray?)
-
-Index series:
-must be a datetime
-
-Model:
-model must be string
-
-
-'''
+import functools
 
 
 # TODO: Inherit from df, so df calls go to base?
@@ -33,38 +19,30 @@ class TimeSeriesSample:
     #  percent, but that seems less precise?
     base = None
     base_valid = None
-    base_full = None
 
-    index = None  # Should probably be a time index
-    categorical_features = None
-    # TODO: Come up with better name/system
-
-    # TODO: Is this the best way to store?
+    index = None  # Sample index, should probably be a time index
     train_test_split_index = None
+    categorical_features = None
 
-    docomposition = None  # TODO; Not sure how defined to make this schema?
-
-    # Constructor
-    # TODO: Move to validation instead of format
-    def __init__(self, base, index, categorical_features=None, date_fmt_str="%Y-%m-%d %H:%M:%S"):
+    # TODO: If index_key is None, check the actual frame index?
+    def __init__(self, base, index_key, categorical_features=None, date_fmt_str="%Y-%m-%d %H:%M:%S"):
+        """
+        Initialize the Sample, with a provided index_key. Specify the catigorical_features, and the date_fmt_str
+        to be used by the datetime.strptime function.
+        """
         # TODO: DataFrame, or NumPy Array?
         self.base = base
 
         try:
-            index_series = self.base[index]
+            index_series = self.base[index_key]
         except KeyError:
-            # TODO: Should attatch this to the error?
-            # print("Index not found!")
-            raise KeyError("Index \"{0}\" not found!".format(index))
-            # return
+            raise KeyError("Index \"{0}\" not found!".format(index_key))
 
-        # If the index is a string, parse w/ date_fmt_str TODO: Default?
-        # TODO: Test Index is datetime
         if not isinstance(index_series[0], datetime):
             try:
                 index_series = index_series.apply(lambda x: datetime.strptime(x, date_fmt_str))
             except TypeError:
-                raise TypeError("Cannot parse datetime index at \"{0}\".".format(index))
+                raise TypeError("Cannot parse datetime index at \"{0}\".".format(index_key))
 
         # TODO: Do we drop the "index" series?
         self.base.set_index(index_series, inplace=True)
@@ -78,12 +56,14 @@ class TimeSeriesSample:
         # if series_features is not None:
         #     #self.series_features = series_features
         #     pass
+
         if categorical_features is not None:
             self.categorical_features = categorical_features
 
     # Train/Test/Validation Split
     def train_test_split(self, valid_percent):
-        """Splits off last valid_percent of the data to a validation set. Percent will come from last index of the
+        """
+        Splits off last valid_percent of the data to a validation set. Percent will come from last index of the
         array.
         """
         # Base
@@ -92,22 +72,51 @@ class TimeSeriesSample:
 
     @staticmethod
     def _split_frame(frame, percent):
-        # TODO: Maybe some input validation?
         size = len(frame.index)
-        factor = (100 - percent) / 100
+
+        if percent >= 100 or percent <= 0:
+            raise ValueError("{0} is not a valid percent for train/test split")
+
+        # TODO: Decimal check, or range check?
+        #  i.e. will a valid set ever be half a percent? And is it cool to do type checks?
+        if percent > 1:
+            factor = (100 - percent) / 100
+        else:
+            factor = (1 - percent) / 100
+
         split_index = int(size * factor)
         train, validate = frame[0:split_index], frame[split_index:]
 
         return train, validate
 
     # Decorator funcs?? For splitting and rejoining, if necessary.
-    def _rejoin(self):
-        self.train_test_split_index = len(self.base)
-        self.base = self.base + self.base_valid
+    # def _rejoin(self):
+    #     self.train_test_split_index = len(self.base)
+    #     self.base = self.base + self.base_valid
+    #
+    # def _resplit(self):
+    #     self.base, self.base_valid = self.base[:self.train_test_split_index], self.base[self.train_test_split_index:]
+    #
+    # # TODO: Want to make a wrapper that applies new features, or feature transforms, over BOTH train and test
+    # @staticmethod
+    # def across_splits(func):
+    #     # TODO: @functools.wraps(func)
+    #     def wrapper(*args, **kwargs):
+    #         # self._rejoin()
+    #
+    #         func()
+    #
+    #         # self._resplit()
+    #
+    #     return wrapper
+    #
+    # @across_splits
+    # def test_wrap_unwrap(self):
+    #     print("base: {0}", len(self.base))
+    #     print("base_valid: {0}", len(self.base_valid))
 
-    def _resplit(self):
-        self.base, self.base_valid = self.base[:self.train_test_split_index], self.base[self.train_test_split_index:]
-
+    # Graphing
+    # TODO: Want to start putting some methods to genreate plot items?
     # def plot_series_features(self):
     #
     #     series_plots = []
@@ -127,19 +136,9 @@ class TimeSeriesSample:
     #
     #     return series_plots
 
-    # # Index
-    # def _string_format_index(self, date_fmt_str="%Y-%m-%d %H:%M:%S"):
-    #
-    #     self.base[self.index] = self.base[self.index].apply(lambda x: datetime.strptime(x, date_fmt_str))
-    #     self.base.set_index(self.index)
-    #     self.base.sort_index(inplace=True)
-    #
-    #     return True
-
     # Diagnostics
-    # TODO: All
     def stationality(self, series):
-        """Print out the stationality of the series. Use multiple methods/test."""
+        """Print out the stationality of the given series. Use multiple methods/test."""
         # ADF
         result = adfuller(self.base[series].values)
 
@@ -151,13 +150,18 @@ class TimeSeriesSample:
 
         return result
 
-    def autocorrelation(self):
-        """Check the degree of autocorrelation."""
+
+
+
+
+    def autocorrelation(self, series):
+        """Check the degree of autocorrelation of the given series."""
         # TODO: Autocorr stepdown/degree. Take autocorr of resid?
         pass
 
     # Decomposition
     def decompose(self, series):
+        # TODO: maybe decmpose-specific suffixes?
         period = 144  # Day
         # period = 1008 # Month
 
@@ -226,7 +230,8 @@ class TimeSeriesSample:
 
     # Clean
     def clean_lights(self, floor=0):
-        """Add a light_on series to dataframe, indicating the lights were taking power. Add a light_cleaned with all
+        """
+        Add a light_on series to dataframe, indicating the lights were taking power. Add a light_cleaned with all
         zero light power values removed.
         """
         light_on_list = []
