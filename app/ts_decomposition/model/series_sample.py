@@ -50,18 +50,21 @@ class TimeSeriesSample:
         # TODO: DataFrame, or NumPy Array?
         self.base = base
 
-        # TODO: Check that index is a datetime, or try to parse it
         try:
             index_series = self.base[index]
         except KeyError:
-            print("Index not found!")
-            return
+            # TODO: Should attatch this to the error?
+            # print("Index not found!")
+            raise KeyError("Index \"{0}\" not found!".format(index))
+            # return
 
         # If the index is a string, parse w/ date_fmt_str TODO: Default?
-        try:
-            index_series = index_series.apply(lambda x: datetime.strptime(x, date_fmt_str))
-        except TypeError:
-            pass
+        # TODO: Test Index is datetime
+        if not isinstance(index_series[0], datetime):
+            try:
+                index_series = index_series.apply(lambda x: datetime.strptime(x, date_fmt_str))
+            except TypeError:
+                raise TypeError("Cannot parse datetime index at \"{0}\".".format(index))
 
         # TODO: Do we drop the "index" series?
         self.base.set_index(index_series, inplace=True)
