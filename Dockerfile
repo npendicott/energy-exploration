@@ -1,4 +1,6 @@
-FROM resin/raspberry-pi-python:latest
+# On second thought, don't use this Dockerfile
+# FROM resin/raspberry-pi-python:latest
+FROM python:3.6-slim-stretch
 
 # Enable systemd
 ENV INITSYSTEM on
