@@ -66,6 +66,7 @@ class TimeSeriesSample:
         Splits off last valid_percent of the data to a validation set. Percent will come from last index of the
         array.
         """
+        # TODO: percent check and rejoin for if the tts has happened?
         # Base
         if self.base is not None:
             self.base, self.base_valid = self._split_frame(self.base, valid_percent)
@@ -117,6 +118,7 @@ class TimeSeriesSample:
 
     # Graphing
     # TODO: Want to start putting some methods to genreate plot items?
+    # From hist, return: axes: matplotlib.AxesSubplot or numpy.ndarray of them
     # def plot_series_features(self):
     #
     #     series_plots = []
