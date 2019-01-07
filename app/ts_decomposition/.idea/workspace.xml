@@ -2,8 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="1d43467e-b31e-41ca-997c-aaec40d56a77" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/../../2_using_lib.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../2_using_lib.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/series_sample.py" beforeDir="false" afterPath="$PROJECT_DIR$/model/series_sample.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/../../Dockerfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../app.py" beforeDir="false" afterPath="$PROJECT_DIR$/../app.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
