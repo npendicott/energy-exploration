@@ -141,6 +141,10 @@ class TimeSeriesSample:
     # Diagnostics
     def stationality(self, series):
         """Print out the stationality of the given series. Use multiple methods/test."""
+
+        # TODO: Try/Catch for string or something?
+        print("Stationality of {0}".format(series))
+
         # ADF
         result = adfuller(self.base[series].values)
 
@@ -150,7 +154,10 @@ class TimeSeriesSample:
         for key, value in result[4].items():
             print('\t%s: %.3f' % (key, value))
 
+        print()
         return result
+
+
 
 
 
@@ -181,9 +188,9 @@ class TimeSeriesSample:
         observed = result.observed[start_gap:end_gap]
         residual = result.resid[start_gap:end_gap]
 
-        r_sqr = self.residual(observed, residual)
+        # r_sqr = self.residual(observed, residual)
 
-        print(r_sqr)
+        # print(r_sqr)
 
         return result
 

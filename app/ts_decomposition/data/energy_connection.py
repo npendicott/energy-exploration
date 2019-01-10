@@ -4,7 +4,8 @@ from pandas import DataFrame, Series
 
 from influxdb import InfluxDBClient
 
-ENERGY_DB_HOST = 'localhost'
+#ENERGY_DB_HOST = 'localhost'
+ENERGY_DB_HOST = 'influx'
 ENERGY_DB_PORT = '8086'
 
 ENERGY_DB_USER = 'root'
@@ -15,6 +16,7 @@ ENERGY_DB_ENERGY_DATABASE = 'energydb'
 ENERGY_DB_INDEX = 'time'
 
 
+# TODO: validate connaction on init
 class EnergyConnection:
     """A class for connecting to InfluxDB, with a specific energy readings schema"""
     client = InfluxDBClient(
