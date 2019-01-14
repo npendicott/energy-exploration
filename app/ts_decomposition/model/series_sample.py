@@ -5,7 +5,6 @@ from datetime import datetime
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.seasonal import seasonal_decompose
 
-
 from ts_decomposition.model.ryo_analysis import kpss_test, quick_autocorr
 
 #from model.ryo_analysis import kpss_test, quick_autocorr
