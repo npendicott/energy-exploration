@@ -1,18 +1,11 @@
-#FROM python:3.6-slim
-
-#WORKDIR /webserver
-
-#COPY . /webserver
-
-#RUN pip install -r requirements.txt
-# TODO: break here into a seperate container to save build time?
-
-FROM energy-requirements
+FROM python:3.6-slim
 
 WORKDIR /webserver
 
 COPY . /webserver
 
+RUN pip install -r requirements.txt
+# TODO: break here into a seperate container to save build time?
 
 # Do I need to keep this?
 # I feel like I should not have to change directories
