@@ -1,10 +1,11 @@
-import pandas
+import numpy as np
+# import pandas
 from pandas import Series
 from datetime import datetime
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.seasonal import seasonal_decompose
 
-import functools
+from model.ryo_analysis import kpss_test, quick_autocorr
 
 
 # TODO: Inherit from df, so df calls go to base?
@@ -30,8 +31,8 @@ class TimeSeriesSample:
         Initialize the Sample, with a provided index_key. Specify the catigorical_features, and the date_fmt_str
         to be used by the datetime.strptime function.
         """
-        # TODO: DataFrame, or NumPy Array?
-        self.base = base
+
+        self.base = base  # TODO: DataFrame, or NumPy Array?
 
         try:
             index_series = self.base[index_key]
@@ -43,20 +44,12 @@ class TimeSeriesSample:
                 index_series = index_series.apply(lambda x: datetime.strptime(x, date_fmt_str))
             except TypeError:
                 raise TypeError("Cannot parse datetime index at \"{0}\".".format(index_key))
+            except IndexError:
+                raise IndexError("Index series as nothing at [0]!")
 
-        # TODO: Do we drop the "index" series?
-        self.base.set_index(index_series, inplace=True)
+        self.base.set_index(index_series, inplace=True) # TODO: Do we drop the "index" series?
 
         # # TODO: If one is null, do we try to make the compliment the other?
-        # if series_features is not None and categorical_features is None:
-        #     pass
-        # if categorical_features is not None and series_features is None:
-        #     pass
-        #
-        # if series_features is not None:
-        #     #self.series_features = series_features
-        #     pass
-
         if categorical_features is not None:
             self.categorical_features = categorical_features
 
@@ -66,7 +59,10 @@ class TimeSeriesSample:
         Splits off last valid_percent of the data to a validation set. Percent will come from last index of the
         array.
         """
-        # TODO: percent check and rejoin for if the tts has happened?
+
+        if self.base_valid is not None:
+            pass  # TODO: Check for percent/base_valid? then rejoin?
+
         # Base
         if self.base is not None:
             self.base, self.base_valid = self._split_frame(self.base, valid_percent)
@@ -90,6 +86,7 @@ class TimeSeriesSample:
 
         return train, validate
 
+    # TODO: Decorators: Apply on full set vs train/test, apply on quantitative/vs cat/qual
     # Decorator funcs?? For splitting and rejoining, if necessary.
     # def _rejoin(self):
     #     self.train_test_split_index = len(self.base)
@@ -116,103 +113,13 @@ class TimeSeriesSample:
     #     print("base: {0}", len(self.base))
     #     print("base_valid: {0}", len(self.base_valid))
 
-    # Graphing
-    # TODO: Want to start putting some methods to genreate plot items?
-    # From hist, return: axes: matplotlib.AxesSubplot or numpy.ndarray of them
-    # def plot_series_features(self):
-    #
-    #     series_plots = []
-    #     for series in self.base:
-    #         if series not in self.categorical_features:
-    #             series_plots.append(self.base.plot(kind='line', x=self.base.index, y=series))
-    #
-    #     return series_plots
-    #     pass
-    #
-    # def plot_categorical_features(self):
-    #     series_plots = []
-    #
-    #     for series in self.base:
-    #         if series in self.categorical_features:
-    #             series_plots.append(self.base.plot(kind='line', x=self.base.index, y=series))
-    #
-    #     return series_plots
-
-    # Diagnostics
-    def stationality(self, series):
-        """Print out the stationality of the given series. Use multiple methods/test."""
-
-        # TODO: Try/Catch for string or something?
-        print("Stationality of {0}".format(series))
-
-        # ADF
-        result = adfuller(self.base[series].values)
-
-        print('ADF Statistic: %f' % result[0])
-        print('p-value: %f' % result[1])
-        print('Critical Values:')
-        for key, value in result[4].items():
-            print('\t%s: %.3f' % (key, value))
-
-        print()
-        return result
-
-
-
-
-
-
-
-    def autocorrelation(self, series):
-        """Check the degree of autocorrelation of the given series."""
-        # TODO: Autocorr stepdown/degree. Take autocorr of resid?
-        pass
-
-    # Decomposition
-    def decompose(self, series):
-        # TODO: maybe decmpose-specific suffixes?
-        period = 144  # Day
-        # period = 1008 # Month
-
-        two_side = True
-        # two_side=False
-
-        # model = 'additive'
-        model = 'multiplicitive'
-
-        result = seasonal_decompose(self.base[series].values, model=model, two_sided=two_side, freq=period)
-        # Cut off the NaNa on either side, from Moving Average loss
-        start_gap = period
-        end_gap = len(result.resid) - period
-
-        observed = result.observed[start_gap:end_gap]
-        residual = result.resid[start_gap:end_gap]
-
-        # r_sqr = self.residual(observed, residual)
-
-        # print(r_sqr)
-
-        return result
-
-    @staticmethod
-    def calc_r_sqr(observed, residual):
-        """Calculate the r_sqr from an observed set and residual set."""
-        ss_res = sum([(e * e) for e in residual])
-
-        y_bar = sum(observed) / len(observed)
-        ss_tot = sum([((y - y_bar) * (y - y_bar)) for y in observed])
-
-        r_sqr = 1 - (ss_res / ss_tot)
-
-        return r_sqr
-
-    # Generate some Classifications For Weekday/Weekend
+    # Creature Features
     def day_of_week_class(self):
         """Add series to dataframe for a day_of_week_class classification."""
         # # This func is for labels if needed
         # def get_day(date):
         #     day_int = date.weekday()
-            
+
         #     day_switch = {
         #         0: "Monday",
         #         1: "Tuesday",
@@ -229,6 +136,7 @@ class TimeSeriesSample:
 
     def weekend_weekday_class(self):
         """Generate class for weekend_weekday_class. 0 is weekday."""
+
         def weekend_weekday(date):
             if date.weekday() == 5 or date.weekday() == 6:
                 return 1
@@ -237,7 +145,8 @@ class TimeSeriesSample:
 
         self.base['weekend_weekday_class'] = self.base[self.index].apply(weekend_weekday)
 
-    # Clean
+        # Clean
+
     def clean_lights(self, floor=0):
         """
         Add a light_on series to dataframe, indicating the lights were taking power. Add a light_cleaned with all
@@ -264,7 +173,123 @@ class TimeSeriesSample:
         light_cleaned_series = Series(light_cleaned_list)
         self.base['light_cleaned'] = light_cleaned_series
 
+    # Graphing
+    # TODO: Want to start putting some methods to genreate plot items?
+    # From hist, return: axes: matplotlib.AxesSubplot or numpy.ndarray of them
+    # def plot_series_features(self):
+    #
+    #     series_plots = []
+    #     for series in self.base:
+    #         if series not in self.categorical_features:
+    #             series_plots.append(self.base.plot(kind='line', x=self.base.index, y=series))
+    #
+    #     return series_plots
+    #     pass
+    #
+    # def plot_categorical_features(self):
+    #     series_plots = []
+    #
+    #     for series in self.base:
+    #         if series in self.categorical_features:
+    #             series_plots.append(self.base.plot(kind='line', x=self.base.index, y=series))
+    #
+    #     return series_plots
+
+    # Diagnostics
+    def stationality(self, series, verbose=True):
+        """Print out the stationality of the given series. Use multiple methods/test."""
+
+        # TODO: Try/Catch for string or something?
+        if verbose:
+            print("Stationality of {0}".format(series))
+
+        values = self.base[series].values
+
+        # ADF
+        adf_result = adfuller(values)
+
+        if verbose:
+            print('ADF Statistic: %f' % adf_result[0])
+            print('p-value: %f' % adf_result[1])
+            print('Critical Values:')
+            for key, value in adf_result[4].items():
+                print('\t%s: %.3f' % (key, value))
+            print()
+
+        # KPSS
+        # kpss_result = kpss_test(values)
+
+        # Combine results
+        result = adf_result
+
+        return result
+
+    def autocorrelation(self, series, verbose=True):
+        """
+        Check the degree of autocorrelation of the given series.
+        """
+
+        if verbose:
+            print("Autocorrelation of {0}".format(series))
+
+        values = self.base[series].values
+
+        result = quick_autocorr(values)
+
+        if verbose:
+            print("Quick:")
+            print(result)
+            print()
+
+        # TODO: Autocorr stepdown/degree. Take autocorr of resid?
+
+        return result
+
+    # Decomposition
+    # TODO: Centralize the decompose, with a fixed set of attributes to decompose to?
+    #  or just seasonal_decompose wrapper?
+    def decompose(self, series):
+        # TODO: maybe decmpose-specific suffixes?
+        period = 144  # Day
+        # period = 1008 # Month
+
+        two_side = True
+        # two_side=False
+
+        # model = 'additive'
+        model = 'multiplicitive'
+
+        result = seasonal_decompose(self.base[series].values, model=model, two_sided=two_side, freq=period)
+        # Cut off the NaNa on either side, from Moving Average loss
+        start_gap = period
+        end_gap = len(result.resid) - period
+
+        observed = result.observed[start_gap:end_gap]
+        residual = result.resid[start_gap:end_gap]
+
+        # r_sqr = self.residual(observed, residual)
+
+        # print(r_sqr)
+
+        return result
+
+    # ARIMA
+    def generate_arima(self):
+        pass
+
     # Util
+    @staticmethod
+    def calc_r_sqr(observed, residual):
+        """Calculate the r_sqr from an observed set and residual set."""
+        ss_res = sum([(e * e) for e in residual])
+
+        y_bar = sum(observed) / len(observed)
+        ss_tot = sum([((y - y_bar) * (y - y_bar)) for y in observed])
+
+        r_sqr = 1 - (ss_res / ss_tot)
+
+        return r_sqr
+
     def print(self):
         # Base
         print("Base: ")

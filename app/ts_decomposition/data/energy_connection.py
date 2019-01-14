@@ -4,8 +4,16 @@ from pandas import DataFrame, Series
 
 from influxdb import InfluxDBClient
 
-#ENERGY_DB_HOST = 'localhost'
-ENERGY_DB_HOST = 'influx'
+'''
+This means we will probably want some query object. Hopefully there is json/yml like query in influxdb
+
+TEST: the values/columns unpack
+'''
+
+
+# TODO: Bring in from an ENV file!! Dynamics configs for Docker
+ENERGY_DB_HOST = 'localhost'
+# ENERGY_DB_HOST = 'influx'
 ENERGY_DB_PORT = '8086'
 
 ENERGY_DB_USER = 'root'
@@ -19,16 +27,21 @@ ENERGY_DB_INDEX = 'time'
 # TODO: validate connaction on init
 class EnergyConnection:
     """A class for connecting to InfluxDB, with a specific energy readings schema"""
-    client = InfluxDBClient(
-        ENERGY_DB_HOST, 
-        ENERGY_DB_PORT, 
-        ENERGY_DB_USER, 
-        ENERGY_DB_PASSWORD, 
-        ENERGY_DB_ENERGY_DATABASE
 
-    )
+    client = None
 
-    # 2016-01-11T17:00:00Z
+    def __init__(self):
+        self.client = InfluxDBClient(
+            ENERGY_DB_HOST,
+            ENERGY_DB_PORT,
+            ENERGY_DB_USER,
+            ENERGY_DB_PASSWORD,
+            ENERGY_DB_ENERGY_DATABASE
+
+        )
+
+        # TODO: Test client?
+
     @staticmethod
     def format_index(frame, index, date_fmt_str="%Y-%m-%dT%H:%M:%SZ"):
         frame[index] = frame[index].apply(lambda x: datetime.strptime(x, date_fmt_str))
@@ -39,17 +52,12 @@ class EnergyConnection:
         return frame
 
     # TODO: form rooms to work we need to stop shoving stuff into QL
-    '''
-    This means we will probably want some query object. Hopefully there is json/yml like query in influxdb
-    
-    TEST: the values/columns unpack
-    '''
-    # series needs to be string
-    def get_readings(self, series):
+
+    def get_readings(self, series, elements=None):
         """Get the colum headers and values from an InfluxDB series"""
+
         query_fmt = "SELECT * FROM {0};".format(series)
         result = self.client.query(query_fmt)
-        # print("Result: {0}".format(result))
 
         values = result.raw['series'][0]['values']
         columns = result.raw['series'][0]['columns']
@@ -60,11 +68,9 @@ class EnergyConnection:
     # TODO: Should we introduce pandas here??
     def sample_series(self, series, append_frame=None):
         """Create a pandas dataframe from specific series. Append to a given frame, if supplied."""
-        # readings = self.get_readings('energy_readings')
-        # values = readings.raw['series'][0]['values']
-        # columns = readings.raw['series'][0]['columns']
 
         columns, values = self.get_readings(series)
+
         dataframe = DataFrame(values, columns=columns)
         dataframe = self.format_index(dataframe, ENERGY_DB_INDEX)
 
