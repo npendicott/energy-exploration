@@ -6,13 +6,14 @@ COPY . /webserver
 
 RUN pip install -r requirements.txt
 
-WORKDIR /webserver/ts_decomposition
+# I feel like I should not have to change directories
+#WORKDIR /webserver/ts_decomposition
 
-# Crap
+# Also fell like I should run one blanket "test", instead of for each module
 RUN  python -m unittest -v test/test_series_sample.py
 
-# Crap
-WORKDIR /webserver
+# Reset
+#WORKDIR /webserver
 
 EXPOSE 8789
 

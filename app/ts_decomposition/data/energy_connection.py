@@ -12,8 +12,8 @@ TEST: the values/columns unpack
 
 
 # TODO: Bring in from an ENV file!! Dynamics configs for Docker
-ENERGY_DB_HOST = 'localhost'
-# ENERGY_DB_HOST = 'influx'
+# ENERGY_DB_HOST = 'localhost'
+ENERGY_DB_HOST = 'influx'
 ENERGY_DB_PORT = '8086'
 
 ENERGY_DB_USER = 'root'

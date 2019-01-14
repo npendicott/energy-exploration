@@ -15,18 +15,6 @@ services:
     networks:
       - webnet
 
-  visualizer:
-    image: dockersamples/visualizer:stable
-    ports:
-      - "8080:8080"
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
-    deploy:
-      placement:
-        constraints: [node.role == manager]
-    networks:
-      - webnet
-  #docker run --name=energydb -d -p 8086:8086 -v energydb:/var/lib/influxdb influxdb
   influx:
     image: influxdb
     ports:
@@ -39,6 +27,17 @@ services:
     networks:
       - webnet
 
+  # visualizer:
+  #   image: dockersamples/visualizer:stable
+  #   ports:
+  #     - "8080:8080"
+  #   volumes:
+  #     - "/var/run/docker.sock:/var/run/docker.sock"
+  #   deploy:
+  #     placement:
+  #       constraints: [node.role == manager]
+  #   networks:
+  #     - webnet
   
 networks:
   webnet:

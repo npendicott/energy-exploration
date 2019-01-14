@@ -1,7 +1,8 @@
 import unittest
 
-from model import series_sample
-from model.series_sample import TimeSeriesSample
+# I wish I could keep these tests at the module level, but the import statements are breaking
+from ts_decomposition.model import series_sample
+from ts_decomposition.model.series_sample import TimeSeriesSample
 
 # TODO: Is this bad? To have to import the test_target's dependencies?
 import pandas
@@ -13,7 +14,7 @@ class TestSeriesSample(unittest.TestCase):
 
     @staticmethod
     def setup_test_frame():
-        return pandas.read_csv('./data/test_data.csv')
+        return pandas.read_csv('./ts_decomposition/data/test_data.csv')
 
     def setup_test_sample(self):
         test_frame = self.setup_test_frame()
@@ -47,8 +48,8 @@ class TestSeriesSample(unittest.TestCase):
         self.assertEqual(len(sample.base_valid), 4)
 
     def test_train_test_split_invalid_percent(self):
-        test_frame = pandas.read_csv('./data/test_data.csv')
-        sample = TimeSeriesSample(test_frame, 'datetime')
+        # test_frame = pandas.read_csv('./data/test_data.csv')
+        sample = self.setup_test_sample()
 
         self.assertRaises(ValueError, sample.train_test_split, 101)
         self.assertRaises(ValueError, sample.train_test_split, -1)

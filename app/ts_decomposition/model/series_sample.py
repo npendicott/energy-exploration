@@ -5,8 +5,13 @@ from datetime import datetime
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.seasonal import seasonal_decompose
 
-from model.ryo_analysis import kpss_test, quick_autocorr
 
+from ts_decomposition.model.ryo_analysis import kpss_test, quick_autocorr
+
+#from model.ryo_analysis import kpss_test, quick_autocorr
+
+# The following works for the dang jupyter, should just keep everything in a flat dir I guess
+# from app.ts_decomposition.model.ryo_analysis import kpss_test, quick_autocorr
 
 # TODO: Inherit from df, so df calls go to base?
 class TimeSeriesSample:
