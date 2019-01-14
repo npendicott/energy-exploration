@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 import pandas
 from pandas import DataFrame, Series
@@ -11,36 +12,46 @@ TEST: the values/columns unpack
 '''
 
 
-# TODO: Bring in from an ENV file!! Dynamics configs for Docker
-ENERGY_DB_HOST = 'localhost'
-# ENERGY_DB_HOST = 'influx'
-ENERGY_DB_PORT = '8086'
-
-ENERGY_DB_USER = 'root'
-ENERGY_DB_PASSWORD = 'root'
-
-ENERGY_DB_ENERGY_DATABASE = 'energydb'
-
-ENERGY_DB_INDEX = 'time'
-
-
 # TODO: validate connaction on init
 class EnergyConnection:
     """A class for connecting to InfluxDB, with a specific energy readings schema"""
 
+    # TODO: I probably should not even have these here anyway?
+    ENERGY_DB_HOST = None
+    ENERGY_DB_PORT = None
+    ENERGY_DB_USER = None
+    ENERGY_DB_PASSWORD = None
+
+    # Not really ENVs I think, will deal later
+    ENERGY_DB_ENERGY_DATABASE = None
+    ENERGY_DB_INDEX = None
+
     client = None
 
     def __init__(self):
+        # TODO: Load in ENVs during class constuction? Yes, if they change it is because they probably should
+        self.ENERGY_DB_HOST = os.getenv('ENERGY_DB_HOST')
+        print(self.ENERGY_DB_HOST)
+        self.ENERGY_DB_PORT = os.getenv('ENERGY_DB_PORT')
+
+        self.ENERGY_DB_USER = os.getenv('ENERGY_DB_USER')
+        self.ENERGY_DB_PASSWORD = os.getenv('ENERGY_DB_PASSWORD')
+
+        self.ENERGY_DB_ENERGY_DATABASE = os.getenv('ENERGY_DB_ENERGY_DATABASE')
+
+        self.ENERGY_DB_INDEX = os.getenv('ENERGY_DB_INDEX')
+
+        # TODO: could probably load ENVs straight to client?
         self.client = InfluxDBClient(
-            ENERGY_DB_HOST,
-            ENERGY_DB_PORT,
-            ENERGY_DB_USER,
-            ENERGY_DB_PASSWORD,
-            ENERGY_DB_ENERGY_DATABASE
+            self.ENERGY_DB_HOST,
+            self.ENERGY_DB_PORT,
+            self.ENERGY_DB_USER,
+            self.ENERGY_DB_PASSWORD,
+            self.ENERGY_DB_ENERGY_DATABASE
 
         )
 
-        # TODO: Test client?
+        # TODO: Test client connection at init?
 
     @staticmethod
     def format_index(frame, index, date_fmt_str="%Y-%m-%dT%H:%M:%SZ"):
@@ -72,7 +83,7 @@ class EnergyConnection:
         columns, values = self.get_readings(series)
 
         dataframe = DataFrame(values, columns=columns)
-        dataframe = self.format_index(dataframe, ENERGY_DB_INDEX)
+        dataframe = self.format_index(dataframe, self.ENERGY_DB_INDEX)
 
         # https://pandas.pydata.org/pandas-docs/stable/merging.html
         if append_frame is not None:

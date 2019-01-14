@@ -5,7 +5,9 @@ WORKDIR /webserver
 COPY . /webserver
 
 RUN pip install -r requirements.txt
+# TODO: break here into a seperate container to save build time?
 
+# Do I need to keep this?
 # I feel like I should not have to change directories
 #WORKDIR /webserver/ts_decomposition
 
@@ -17,6 +19,9 @@ RUN  python -m unittest -v test/test_series_sample.py
 
 EXPOSE 8789
 
-ENV NAME Energy Exploration
+ENV NAME 'Energy Exploration'
+
+# Should overwrite local envs in .env file
+ENV ENERGY_DB_HOST 'influx'
 
 CMD ["python", "app.py"]

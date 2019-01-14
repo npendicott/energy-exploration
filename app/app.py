@@ -7,8 +7,16 @@ import socket
 from ts_decomposition.data.energy_connection import EnergyConnection
 
 # Model
-#import ts_decomposition
 from ts_decomposition.model.series_sample import TimeSeriesSample
+
+# settings.py
+from dotenv import load_dotenv
+from pathlib import Path  # python3 only
+load_dotenv()
+# load_dotenv(verbose=True)  # Verbose
+
+env_path = Path('.') / '.env'
+load_dotenv(dotenv_path=env_path)
 
 # Copypasta from TS main 
 from datetime import datetime

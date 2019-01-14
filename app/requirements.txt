@@ -20,6 +20,7 @@ patsy==0.5.1
 pylint==2.2.2
 pyparsing==2.3.0
 python-dateutil==2.7.5
+python-dotenv==0.10.1
 pytz==2018.7
 redis==3.0.1
 requests==2.21.0
